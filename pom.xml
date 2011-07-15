@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.webguitoolkit.ui</groupId>
+  <artifactId>wgt-ui-addons</artifactId>
+  <packaging>jar</packaging>
+  <name>wgt-ui-addons</name>
+  <version>01.00.00-SNAPSHOT</version> 
+
+  <description>WGT project created with maven webguitoolkit-archetype</description>
+  
+    <properties>
+        <prop.project.root.dir>${basedir}</prop.project.root.dir>
+        <prop.project.group>Commons</prop.project.group>
+        <prop.project.name>${project.name}</prop.project.name>
+        <prop.site.generateReports>true</prop.site.generateReports>
+        <prop.javadoc.attach-javadocs>true</prop.javadoc.attach-javadocs>
+        <prop.source.generateSourceJar>true</prop.source.generateSourceJar>
+        <prop.jar.skipTestjar>false</prop.jar.skipTestjar>
+        <prop.test.skip>false</prop.test.skip>
+        <prop.java.sourceversion>1.6</prop.java.sourceversion>
+        <prop.java.targetversion>1.6</prop.java.targetversion>
+        <prop.aspectj.excludes>**/*</prop.aspectj.excludes>
+    </properties>
+  
+  <developers>
+    <developer>
+      <id>PZ</id>
+      <name>Peter Zaretzke</name>
+      <email>peter@17sprints.de</email>
+      <roles>
+        <role>Developer</role>
+      </roles>
+      <organization>org</organization>
+    </developer>
+  </developers>
+  
+  <dependencies>
+  	<dependency>
+  		<groupId>com.endress.infoserve.ui</groupId>
+  		<artifactId>webguitoolkit-ui-eh</artifactId>
+  		<version>01.03.11</version>
+  		<optional>false</optional>
+  		<scope>compile</scope>
+  	</dependency>
+  </dependencies> 
+  
+  <reporting>
+    <plugins>
+      <plugin>
+        <artifactId>maven-changes-plugin</artifactId>
+        <configuration>
+          <toAddresses>
+            <toAddress implementation="java.lang.String">me@somecompany.com</toAddress>
+          </toAddresses>  
+        </configuration>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>changes-report</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+      <plugin>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <configuration>
+          <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
+          <dependencyDetailsEnabled>false</dependencyDetailsEnabled>
+        </configuration>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>index</report>
+              <report>project-team</report>
+              <report>issue-tracking</report>
+              <report>scm</report>
+              <report>dependencies</report>
+              <report>cim</report>
+              <report>summary</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+      <plugin>
+        <artifactId>maven-changelog-plugin</artifactId>
+        <reportSets>
+          <reportSet>
+            <id>dual-report</id>
+            <configuration>
+              <type>range</type>
+              <range>180</range>
+              <displayFileDetailUrl>http://isw600.infoserve.endress.com/svn/%FILE%</displayFileDetailUrl>
+            </configuration>
+            <reports>
+              <report>dev-activity</report>
+              <report>file-activity</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+      <!-- 
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>clirr-maven-plugin</artifactId>
+        <configuration>
+          <comparisonVersion>1.0.11</comparisonVersion>
+        </configuration>
+      </plugin>
+      -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>taglist-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-report-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>cobertura-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </reporting>
+  
+</project>

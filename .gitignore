@@ -1,0 +1,8 @@
+target/
+*.class
+.DS_Store
+*.jar
+*.war
+.metadata/
+*.log
+.svn/
