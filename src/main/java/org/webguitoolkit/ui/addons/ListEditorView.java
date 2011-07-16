@@ -35,12 +35,11 @@ import org.webguitoolkit.ui.controls.layout.SequentialTableLayout;
  * @author peter@17sprints.de
  * 
  */
-public class MapEditorView extends AbstractView {
+public class ListEditorView extends AbstractView {
 
 	private static final long serialVersionUID = 7173822642048203379L;
 	private static final String VAL_PREFIX = "val_";
-	private static final String KEY_PREFIX = "key_";
-	private Map<String, String> map;
+	private List<String> list;
 	private DataBagWrapper bag;
 	private ICompound compound;
 	private Map<String, String> removeIndex;
@@ -50,7 +49,7 @@ public class MapEditorView extends AbstractView {
 	// private int width = 400, height = 250;
 	private int nextIndex;
 
-	public MapEditorView(WebGuiFactory factory, ICanvas viewConnector) {
+	public ListEditorView(WebGuiFactory factory, ICanvas viewConnector) {
 		super(factory, viewConnector);
 		bag = new DataBagWrapper(null);
 	}
@@ -58,7 +57,7 @@ public class MapEditorView extends AbstractView {
 	@Override
 	protected void createControls(WebGuiFactory factory, ICanvas viewConnector) {
 		ICanvas canvas = factory.createCanvas(viewConnector);
-		canvas.addCssClass("mevcanv");
+		canvas.addCssClass("levcanv");
 		SequentialTableLayout layout = new SequentialTableLayout();
 		compound = factory.createCompound(canvas);
 		compound.setLayout(layout);
@@ -67,30 +66,24 @@ public class MapEditorView extends AbstractView {
 			if (componentMode == ICompound.MODE_READONLY)
 				factory.createLabel(compound, "no elements");
 			else {
-				bag.addProperty(KEY_PREFIX + 0, "{key-1}");
 				bag.addProperty(VAL_PREFIX + 0, "{value}");
 			}
-			// componentMode = ICompound.MODE_EDIT;
+
 		}
-//		compound.changeElementMode(componentMode);
 
 		removeIndex = new HashMap<String, String>();
 		removeButtons = new ArrayList<IButton>();
 		List<String> keys = new ArrayList<String>();
 		for (Iterator<String> it = bag.getProperties().keySet().iterator(); it.hasNext();) {
 			String key = it.next();
-			if (key.startsWith(VAL_PREFIX))
-				continue;
 			keys.add(key);
 		}
 
 		for (Iterator<String> it = keys.iterator(); it.hasNext();) {
 			String key = it.next();
-			final String index = key.substring(KEY_PREFIX.length());
-			IText keyText = factory.createText(compound, key);
-			keyText.addCssClass("mevkeytext");
+			final String index = key.substring(VAL_PREFIX.length());
 			IText valueText = factory.createText(compound, VAL_PREFIX + index);
-			valueText.addCssClass("mevvaltext");
+			valueText.addCssClass("levvaltext");
 			IButton removeButton = factory.createLinkButton(compound, "images/trash_small.gif", null,
 					"Remove this entry", new IActionListener() {
 						public void onAction(ClientEvent event) {
@@ -98,13 +91,11 @@ public class MapEditorView extends AbstractView {
 							String bagkey = (String) removeIndex.get(id);
 							// System.out.println("remove " + bagkey + " from " + bag.getProperties().keySet());
 							bag.getProperties().remove(bagkey);
-							String index = bagkey.substring(KEY_PREFIX.length());
-							bag.getProperties().remove(VAL_PREFIX + index);
 							compound.save();
 							show();
 						}
 					});
-			removeButton.addCssClass("mevrembut");
+			removeButton.addCssClass("levrembut");
 			removeButton.setTooltip("Remove entry ".concat(key));
 			removeIndex.put(removeButton.getId(), key);
 			removeButtons.add(removeButton);
@@ -116,7 +107,6 @@ public class MapEditorView extends AbstractView {
 					public void onAction(ClientEvent event) {
 						compound.save();
 						// System.out.println("add " + KEY_PREFIX + nextIndex + " to  " + bag.getProperties().keySet());
-						bag.addProperty(KEY_PREFIX + nextIndex, "{new key}");
 						bag.addProperty(VAL_PREFIX + nextIndex++, "{new value}");
 						show();
 					}
@@ -124,7 +114,7 @@ public class MapEditorView extends AbstractView {
 				addButton.setLayoutData(SequentialTableLayout.getLastInRow());
 
 				addButton.setVisible(componentMode == ICompound.MODE_EDIT);
-				addButton.addCssClass("mevaddbut");
+				addButton.addCssClass("levaddbut");
 			} else
 				removeButton.setLayoutData(SequentialTableLayout.getLastInRow());
 		}
@@ -138,28 +128,22 @@ public class MapEditorView extends AbstractView {
 	 */
 	public void load() {
 		bag.clearProperties();
-		Set<Entry<String, String>> entrySet = map.entrySet();
 		int i = 0;
-		for (Entry<String, String> entry : entrySet) {
-			bag.addProperty(KEY_PREFIX + i, entry.getKey());
-			bag.addProperty(VAL_PREFIX + i++, entry.getValue());
+		for (String entry : list) {
+			bag.addProperty(VAL_PREFIX + i++, entry);
 		}
 		nextIndex = i + 1;
 	}
 
 	/**
-	 * save the databag to the provided map.
+	 * save the databag to the provided list.
 	 */
 	public void save2Model() {
 		DataBagWrapper theBag = (DataBagWrapper) compound.getBag();
-		map.clear();
+		list.clear();
 		for (String key : theBag.getProperties().keySet()) {
-			if (key.startsWith(KEY_PREFIX)) {
-				String number = key.substring(KEY_PREFIX.length());
-				String keyValue = theBag.getString(key);
-				String value = theBag.getString(VAL_PREFIX + number);
-				map.put(keyValue, value);
-			}
+			String value = theBag.getString(key);
+			list.add(value);
 		}
 	}
 
@@ -168,12 +152,12 @@ public class MapEditorView extends AbstractView {
 	 * 
 	 * @param map
 	 */
-	public void setModel(Map<String, String> map) {
-		this.map = map;
+	public void setModel(List<String> list) {
+		this.list = list;
 	}
 
-	public Map<String, String> getModel() {
-		return map;
+	public List<String> getModel() {
+		return list;
 	}
 
 	/**
