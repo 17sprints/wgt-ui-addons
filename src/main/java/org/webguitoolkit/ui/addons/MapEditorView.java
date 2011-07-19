@@ -76,6 +76,7 @@ public class MapEditorView extends AbstractView {
 
 		removeIndex = new HashMap<String, String>();
 		removeButtons = new ArrayList<IButton>();
+	
 		List<String> keys = new ArrayList<String>();
 		for (Iterator<String> it = bag.getProperties().keySet().iterator(); it.hasNext();) {
 			String key = it.next();
@@ -151,6 +152,7 @@ public class MapEditorView extends AbstractView {
 	 * save the databag to the provided map.
 	 */
 	public void save2Model() {
+		compound.save();
 		DataBagWrapper theBag = (DataBagWrapper) compound.getBag();
 		map.clear();
 		for (String key : theBag.getProperties().keySet()) {
@@ -215,29 +217,6 @@ public class MapEditorView extends AbstractView {
 				addButton.setVisible(true);
 		}
 		componentMode = ICompound.MODE_EDIT;
-	}
-
-	/**
-	 * Provides access to the property map of DataBag
-	 */
-	private class DataBagWrapper extends DataBag implements IDataBag {
-
-		public DataBagWrapper(Object delegate) {
-			super(delegate);
-		}
-
-		public Map<String, Object> getProperties() {
-			return properties;
-		}
-
-		public String toString() {
-			StringBuffer result = new StringBuffer("DataBag { ");
-			for (Entry<String, Object> entry : properties.entrySet()) {
-				result.append(entry.getKey()).append("=").append(entry.getValue()).append(", ");
-			}
-			result.append(" }");
-			return result.toString();
-		}
 	}
 
 	public int getComponentMode() {
