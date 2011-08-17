@@ -41,7 +41,7 @@ import org.webguitoolkit.ui.controls.util.Window2ActionAdapter;
 public class MasterDetailController implements Serializable {
 
 	private static Logger log = Logger.getLogger(MasterDetailController.class);
-	
+
 	private Table table;
 	private StandardTabStrip tabStrip;
 	private ButtonBar masterButtonBar;
@@ -86,9 +86,9 @@ public class MasterDetailController implements Serializable {
 		for (ICompound compound : compounds) {
 			registerCompound(compound);
 		}
-		
+
 	}
-	
+
 	public void registerMasterButtonBar(IButtonBar buttonBar, boolean callTableListenerOnNew) {
 		if (buttonBar == null)
 			throw new IllegalArgumentException("buttonBar must be not null");
@@ -104,7 +104,6 @@ public class MasterDetailController implements Serializable {
 		if (listener != null)
 			delegateListener.setDelegate(listener);
 	}
-
 
 	/**
 	 * DelegateTableListener handles interaction with table events
@@ -371,7 +370,8 @@ public class MasterDetailController implements Serializable {
 			private final ClientEvent tabEvent;
 			private final ITabListener delegateTabListener;
 
-			public ConfirmListener(ITabListener delegate, ClientEvent tabEvent, List<ICompound> compounds, ITab oldTab, ITab newTab) {
+			public ConfirmListener(ITabListener delegate, ClientEvent tabEvent, List<ICompound> compounds, ITab oldTab,
+					ITab newTab) {
 				super();
 				this.oldTab = oldTab;
 				this.newTab = newTab;
@@ -388,7 +388,7 @@ public class MasterDetailController implements Serializable {
 					int oldTableSelection = listener.getOldTableSelection();
 					((Table) table).selectionChange(oldTableSelection, true);
 				}
-				for (ICompound  comp : compounds) {
+				for (ICompound comp : compounds) {
 					comp.getBag().undo();
 					comp.load();
 					comp.changeElementMode(ICompound.MODE_READONLY);
@@ -407,7 +407,7 @@ public class MasterDetailController implements Serializable {
 	}
 
 	/**
-	 * DelegateTableListener handles interaction with button bar events
+	 * DelegateTableListener handles interaction with button bar events and calls the 
 	 */
 	public class DelegateButtonBarListener implements IButtonBarListener {
 
@@ -439,9 +439,14 @@ public class MasterDetailController implements Serializable {
 			if (delegate != null)
 				delegate.onDelete(event);
 			((Table) masterTable).removeAndReload(getCompound(event).getBag());
-			masterTable.selectionChange(-1, false);
-			getCompound(event).setBag(null);
-			getCompound(event).load();
+			if (masterTable.getDefaultModel().getTableData().size() > 0) {
+				masterTable.selectionChange(0, true);
+			}
+			else {
+				masterTable.selectionChange(-1, false);
+				getCompound(event).setBag(null);
+				getCompound(event).load();
+			}
 		}
 
 		public void onEdit(ClientEvent event) {

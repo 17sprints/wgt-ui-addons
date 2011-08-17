@@ -66,19 +66,21 @@ public class UiPatternFactory {
 	 *            the class whose attributes (get*, is* shall rendered as columns)
 	 * @param viewConnector
 	 *            the place where the table is linked in
-	 * @param id
+	 * @param name
 	 *            the tables id (NULL is OK)
-	 * @param title TODO
+	 * @param title
+	 *            TODO
 	 * @return the table with columns
 	 */
-	public ITable createTableForClass(Class clazz, ICanvas viewConnector, String id, String title) {
+	public ITable createTableForClass(Class clazz, ICanvas viewConnector, String name, String title) {
 
-		if (id != null && id.indexOf('.') != -1)
-			throw new IllegalArgumentException("id must not contain e '.' : " + id);
+		if (name != null && name.indexOf('.') != -1)
+			throw new IllegalArgumentException("name must not contain e '.' : " + name);
+
 		ICanvas canvas = factory.createCanvas(viewConnector);
 
-		ITable table = factory.createTable(canvas, title, tableRows, id);
-
+		ITable table = factory.createTable(canvas, title, tableRows);
+		table.setName(name);
 		if (keyPrefix == null)
 			keyPrefix = clazz.getSimpleName();
 
