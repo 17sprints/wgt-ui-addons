@@ -12,9 +12,9 @@ import org.apache.commons.lang.StringUtils;
 import org.webguitoolkit.ui.base.WebGuiFactory;
 import org.webguitoolkit.ui.controls.IComposite;
 import org.webguitoolkit.ui.controls.container.ICanvas;
+import org.webguitoolkit.ui.controls.form.ICheckBox;
 import org.webguitoolkit.ui.controls.form.ILabel;
 import org.webguitoolkit.ui.controls.form.IText;
-import org.webguitoolkit.ui.controls.layout.GridLayout;
 import org.webguitoolkit.ui.controls.layout.ITableBasedLayoutData;
 import org.webguitoolkit.ui.controls.layout.SequentialTableLayout;
 import org.webguitoolkit.ui.controls.table.ITable;
@@ -142,12 +142,14 @@ public class UiPatternFactory {
 	 * @return
 	 */
 	public ICanvas createFormForClass(Class clazz, ICanvas parent, String... properties) {
-		ICanvas result = factory.createCanvas(parent);
-		result.setLayout(new GridLayout());
+		ICanvas resultCanvas = createCanvasWithLayout(parent);
+		Map<String, FieldDescriptor> fieldDescriptors = createFieldDescriptors(clazz);
 		for (String property : properties) {
-			createControl(result, property);
+			FieldDescriptor fd = fieldDescriptors.get(property);
+			if (fd != null)
+				createControl(fd, resultCanvas);
 		}
-		return result;
+		return resultCanvas;
 	}
 
 	/**
@@ -156,21 +158,22 @@ public class UiPatternFactory {
 	 * @param property
 	 *            Format: name,type,x,y,...
 	 */
-	private void createControl(ICanvas result, String property) {
-		String[] opts = StringUtils.split(property, ',');
-		String name = opts[0];
-		String type = opts[1].toUpperCase();
-		int x = Integer.parseInt(opts[2]);
-		int y = Integer.parseInt(opts[3]);
-		switch (type.charAt(0)) {
-		case 'L': // create a label
+	private void createControl(FieldDescriptor fieldDescriptor, ICanvas result) {
+
+		switch (fieldDescriptor.type) {
+		case FieldDescriptor.DEFAULT: // create a text
+			IText text = createTextWithLabel(result, fieldDescriptor.getKey(), fieldDescriptor.getName(), true);
+			text.setEditable(fieldDescriptor.isWriteable());
 			break;
-		case 'T': // create a text
+		case FieldDescriptor.BOOLEAN: // create a checkbox
+			ILabel label = factory.createLabel(result, fieldDescriptor.getKey());
+			label.setLabelForFormControl(true);
+			ICheckBox checkbox = factory.createCheckBox(result, fieldDescriptor.getName());
+			checkbox.setDescribingLabel(label);
+			checkbox.setLayoutData(SequentialTableLayout.getLastInRow());
 			break;
-		case 'C': // create a checkbox
-			break;
-		case 'B': // create a textbox
-			break;
+		default:
+			label = factory.createLabel(result, "???" + fieldDescriptor.getKey());
 		}
 	}
 
@@ -277,17 +280,17 @@ public class UiPatternFactory {
 						|| method.getReturnType().isAssignableFrom(Float.class)
 						|| method.getReturnType().isAssignableFrom(Long.class)
 						|| method.getReturnType().isAssignableFrom(Double.class)) {
-					type = ColumnDescriptor.NUMERIC;
+					type = FieldDescriptor.NUMERIC;
 				} else if (method.getReturnType().isAssignableFrom(Collection.class)) {
 					name += ".size";
-					type = ColumnDescriptor.NUMERIC;
+					type = FieldDescriptor.NUMERIC;
 				} else
-					type = ColumnDescriptor.DEFAULT;
+					type = FieldDescriptor.DEFAULT;
 			} else if (name.startsWith("is")) {
 				if (method.getReturnType().isAssignableFrom(Boolean.class)) {
 					name = name.substring("is".length());
 					name = name.substring(0, 1).toLowerCase().concat(name.substring(1));
-					type = ColumnDescriptor.BOOLEAN;
+					type = FieldDescriptor.BOOLEAN;
 				} else
 					continue;
 			} else
@@ -296,7 +299,7 @@ public class UiPatternFactory {
 			result.put(name, new FieldDescriptor(keyPrefix + "." + name + "@*" + StringUtils.capitalize(name), name,
 					type));
 		}
-
+		System.out.println(result);
 		// check the setters
 		for (int i = 0; i < declaredMethods.length; i++) {
 			Method method = declaredMethods[i];
@@ -309,12 +312,19 @@ public class UiPatternFactory {
 				// respect camel case names
 				name = name.substring(0, 1).toLowerCase().concat(name.substring(1));
 				FieldDescriptor fieldDescriptor = result.get(name);
-				fieldDescriptor.setWriteable(true);
+				if (fieldDescriptor != null)
+					fieldDescriptor.setWriteable(true);
 			} else
 				continue;
 		}
 		return result;
 	}
+
+	/**
+	 * 
+	 * @author peter@17sprints.de
+	 * 
+	 */
 
 	class FieldDescriptor {
 
@@ -346,7 +356,8 @@ public class UiPatternFactory {
 		}
 
 		public String toString() {
-			return "ColumnDescriptor { " + getName() + ", " + getKey() + ", " + getType() + " }";
+			return "FieldDescriptor { " + getName() + ", " + getKey() + ", " + getType()
+					+ ((isWriteable() ? ("rw") : ("ro"))) + " }";
 		}
 
 		public void setWriteable(boolean writeable) {
