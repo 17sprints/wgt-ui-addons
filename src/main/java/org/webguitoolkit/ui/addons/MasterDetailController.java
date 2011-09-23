@@ -40,6 +40,8 @@ import org.webguitoolkit.ui.controls.util.Window2ActionAdapter;
 
 public class MasterDetailController implements Serializable {
 
+	private static final long serialVersionUID = 1L;
+
 	private static Logger log = Logger.getLogger(MasterDetailController.class);
 
 	private Table table;
@@ -259,6 +261,7 @@ public class MasterDetailController implements Serializable {
 						((Table) table).getSelectedRowIndex())).show();
 				return false;
 			}
+
 			for (Iterator iter = compounds.iterator(); iter.hasNext();) {
 				ICompound compound = (ICompound) iter.next();
 				compound.setBag(newItem);
@@ -407,7 +410,7 @@ public class MasterDetailController implements Serializable {
 	}
 
 	/**
-	 * DelegateTableListener handles interaction with button bar events and calls the 
+	 * DelegateTableListener handles interaction with button bar events and calls the
 	 */
 	public class DelegateButtonBarListener implements IButtonBarListener {
 
@@ -438,11 +441,12 @@ public class MasterDetailController implements Serializable {
 		public void onDelete(ClientEvent event) {
 			if (delegate != null)
 				delegate.onDelete(event);
+			if (getCompound(event).hasErrors())
+				return;
 			((Table) masterTable).removeAndReload(getCompound(event).getBag());
 			if (masterTable.getDefaultModel().getTableData().size() > 0) {
 				masterTable.selectionChange(0, true);
-			}
-			else {
+			} else {
 				masterTable.selectionChange(-1, false);
 				getCompound(event).setBag(null);
 				getCompound(event).load();

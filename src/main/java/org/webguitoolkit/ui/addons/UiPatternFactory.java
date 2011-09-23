@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,8 @@ import org.webguitoolkit.ui.controls.layout.ITableBasedLayoutData;
 import org.webguitoolkit.ui.controls.layout.SequentialTableLayout;
 import org.webguitoolkit.ui.controls.table.ITable;
 import org.webguitoolkit.ui.controls.util.MasterDetailFactory;
+import org.webguitoolkit.ui.controls.util.conversion.ConvertUtil.ConversionException;
+import org.webguitoolkit.ui.controls.util.conversion.IConverter;
 
 /**
  * This class provides functions to generate common WGT UI patterns consisting of multiple controls.
@@ -72,7 +75,7 @@ public class UiPatternFactory {
 	 *            TODO
 	 * @return the table with columns
 	 */
-	public ITable createTableForClass(Class clazz, ICanvas viewConnector, String name, String title) {
+	public ITable createTableForClass(Class clazz, ICanvas viewConnector, String name, String title, String[] ignore) {
 
 		if (name != null && name.indexOf('.') != -1)
 			throw new IllegalArgumentException("name must not contain e '.' : " + name);
@@ -84,8 +87,10 @@ public class UiPatternFactory {
 		if (keyPrefix == null)
 			keyPrefix = clazz.getSimpleName();
 
+		List ignoredFields = (ignore != null) ? (Arrays.asList(ignore)) : (Collections.emptyList());
 		for (ColumnDescriptor col : createColumnDescriptors(clazz)) {
-			factory.createTableColumn(table, col.getKey(), col.getName(), columnFilter);
+			if (!ignoredFields.contains(col.getName()))
+				factory.createTableColumn(table, col.getKey(), col.getName(), columnFilter);
 		}
 
 		return table;
@@ -101,15 +106,30 @@ public class UiPatternFactory {
 	 *            the path for the labe
 	 * @param property
 	 *            the property to be accessed
-	 * @return the created text control
 	 * @param isLast
 	 *            last int row?
+	 * @param length
+	 *            maximum length for the field
 	 * @return the created text control
+	 * 
 	 */
-	public IText createTextWithLabel(IComposite location, String labelkey, String property, boolean isLast) {
+	public IText createTextWithLabel(IComposite location, String labelkey, String property, boolean isLast, int length) {
 		ILabel label = factory.createLabel(location, labelkey);
 		label.setLabelForFormControl(true);
 		IText text = factory.createText(location, property);
+		text.setMaxlength(length);
+		text.setConverter(new TrimConverter());
+		if (isLast)
+			text.setLayoutData(SequentialTableLayout.getLastInRow());
+		return text;
+	}
+
+	public IText createNumericTextWithLabel(IComposite location, String labelkey, String property, boolean isLast,
+			int length) {
+		ILabel label = factory.createLabel(location, labelkey);
+		label.setLabelForFormControl(true);
+		IText text = factory.createText(location, property);
+		text.setMaxlength(length);
 		if (isLast)
 			text.setLayoutData(SequentialTableLayout.getLastInRow());
 		return text;
@@ -162,7 +182,7 @@ public class UiPatternFactory {
 
 		switch (fieldDescriptor.type) {
 		case FieldDescriptor.DEFAULT: // create a text
-			IText text = createTextWithLabel(result, fieldDescriptor.getKey(), fieldDescriptor.getName(), true);
+			IText text = createTextWithLabel(result, fieldDescriptor.getKey(), fieldDescriptor.getName(), true, 32);
 			text.setEditable(fieldDescriptor.isWriteable());
 			break;
 		case FieldDescriptor.BOOLEAN: // create a checkbox
@@ -204,6 +224,8 @@ public class UiPatternFactory {
 				} else if (method.getReturnType().isAssignableFrom(Collection.class)) {
 					name += ".size";
 					type = ColumnDescriptor.NUMERIC;
+				} else if (method.getReturnType().isAssignableFrom(Boolean.class)) {
+					type = ColumnDescriptor.BOOLEAN;
 				} else
 					type = ColumnDescriptor.DEFAULT;
 			} else if (name.startsWith("is")) {
@@ -284,8 +306,11 @@ public class UiPatternFactory {
 				} else if (method.getReturnType().isAssignableFrom(Collection.class)) {
 					name += ".size";
 					type = FieldDescriptor.NUMERIC;
+				} else if (method.getReturnType().isAssignableFrom(Boolean.class)) {
+					type = FieldDescriptor.BOOLEAN;
 				} else
 					type = FieldDescriptor.DEFAULT;
+
 			} else if (name.startsWith("is")) {
 				if (method.getReturnType().isAssignableFrom(Boolean.class)) {
 					name = name.substring("is".length());
@@ -299,7 +324,7 @@ public class UiPatternFactory {
 			result.put(name, new FieldDescriptor(keyPrefix + "." + name + "@*" + StringUtils.capitalize(name), name,
 					type));
 		}
-		System.out.println(result);
+
 		// check the setters
 		for (int i = 0; i < declaredMethods.length; i++) {
 			Method method = declaredMethods[i];
@@ -317,6 +342,7 @@ public class UiPatternFactory {
 			} else
 				continue;
 		}
+		System.out.println(result);
 		return result;
 	}
 
@@ -387,5 +413,21 @@ public class UiPatternFactory {
 
 	public MasterDetailFactory getMdf() {
 		return mdf;
+	}
+
+	class TrimConverter implements IConverter {
+
+		@Override
+		public Object parse(String value) throws ConversionException {
+			return value.trim();
+		}
+
+		@Override
+		public Object convert(Class type, Object value) {
+			if (type == String.class && value != null)
+				return String.valueOf(value);
+			return value;
+		}
+
 	}
 }
