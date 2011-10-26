@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.webguitoolkit.ui</groupId>
@@ -8,7 +7,8 @@
 	<packaging>jar</packaging>
 	<name>wgt-ui-addons</name>
 	<url>http://webguitoolkit.org</url>
-	<version>01.00.00-SNAPSHOT</version>
+
+	<version>01.00.01-SNAPSHOT</version>
 
 	<description>WGT project created with maven webguitoolkit-archetype</description>
 
@@ -18,6 +18,13 @@
 		<prop.java.targetversion>1.6</prop.java.targetversion>
 		<prop.source.generateSourceJar>true</prop.source.generateSourceJar>
 	</properties>
+
+	<scm>
+		<connection>scm:svn:http://isw600.infoserve.endress.com/svn/Utils/wgt-ui-addons/trunk/wgt-ui-addons</connection>
+		<developerConnection>scm:svn:http://isw600.infoserve.endress.com/svn/Utils/wgt-ui-addons/trunk/wgt-ui-addons</developerConnection>
+		<url>http://isw600.infoserve.endress.com/svn/Utils/wgt-ui-addons/trunk/wgt-ui-addons</url>
+	</scm>
+
 
 	<developers>
 		<developer>
@@ -78,5 +85,24 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<distributionManagement>
+		<repository>
+			<id>archiva.internal</id>
+			<name>Local Archiva repository</name>
+			<url>dav:http://isw600.infoserve.endress.com:8080/archiva/repository/internal</url>
+		</repository>
+		<snapshotRepository>
+			<id>archiva.internal.snapshots</id>
+			<name>Local Archiva repository for snapshots</name>
+			<url>dav:http://isw600.infoserve.endress.com:8080/archiva/repository/snapshots</url>
+			<uniqueVersion>false</uniqueVersion>
+		</snapshotRepository>
+		<site>
+			<id>tomcat-isw600</id>
+			<name>site</name>
+			<url>file://D:/Apps/xampp/htdocs/projectsites/${prop.project.group}</url>
+		</site>
+	</distributionManagement>
 
 </project>

@@ -19,6 +19,7 @@ import org.webguitoolkit.ui.controls.form.IText;
 import org.webguitoolkit.ui.controls.layout.ITableBasedLayoutData;
 import org.webguitoolkit.ui.controls.layout.SequentialTableLayout;
 import org.webguitoolkit.ui.controls.table.ITable;
+import org.webguitoolkit.ui.controls.table.ITableColumn;
 import org.webguitoolkit.ui.controls.util.MasterDetailFactory;
 import org.webguitoolkit.ui.controls.util.conversion.ConvertUtil.ConversionException;
 import org.webguitoolkit.ui.controls.util.conversion.IConverter;
@@ -73,9 +74,12 @@ public class UiPatternFactory {
 	 *            the tables id (NULL is OK)
 	 * @param title
 	 *            TODO
+	 * @param mandatory
+	 *            TODO
 	 * @return the table with columns
 	 */
-	public ITable createTableForClass(Class clazz, ICanvas viewConnector, String name, String title, String[] ignore) {
+	public ITable createTableForClass(Class clazz, ICanvas viewConnector, String name, String title, String[] ignore,
+			String[] mandatory) {
 
 		if (name != null && name.indexOf('.') != -1)
 			throw new IllegalArgumentException("name must not contain e '.' : " + name);
@@ -88,9 +92,13 @@ public class UiPatternFactory {
 			keyPrefix = clazz.getSimpleName();
 
 		List ignoredFields = (ignore != null) ? (Arrays.asList(ignore)) : (Collections.emptyList());
+		List mandatoryFields = (mandatory != null) ? (Arrays.asList(mandatory)) : (Collections.emptyList());
+
 		for (ColumnDescriptor col : createColumnDescriptors(clazz)) {
-			if (!ignoredFields.contains(col.getName()))
-				factory.createTableColumn(table, col.getKey(), col.getName(), columnFilter);
+			if (!ignoredFields.contains(col.getName())) {
+				ITableColumn column = factory.createTableColumn(table, col.getKey(), col.getName(), columnFilter);
+				column.setMandatory(mandatoryFields.contains(col.getName()));
+			}
 		}
 
 		return table;
