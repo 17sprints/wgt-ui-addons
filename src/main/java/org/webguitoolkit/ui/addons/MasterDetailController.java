@@ -47,13 +47,23 @@ public class MasterDetailController implements Serializable {
 	private Table table;
 	private StandardTabStrip tabStrip;
 	private ButtonBar masterButtonBar;
+	private String name;
+
+	private DelegateTableListener delegateTableListener;
+
+	public MasterDetailController() {
+	}
+
+	public MasterDetailController(String name) {
+		this.name = name;
+	}
 
 	public void registerTable(ITable table) {
 		if (table == null)
 			throw new IllegalArgumentException("Table must be not null");
 		this.table = (Table) table;
 		ITableListener tableListener = this.table.getListener();
-		DelegateTableListener delegateTableListener = new DelegateTableListener();
+		delegateTableListener = new DelegateTableListener();
 		table.setListener(delegateTableListener);
 		if (tableListener != null)
 			delegateTableListener.setDelegate(tableListener);
@@ -84,11 +94,11 @@ public class MasterDetailController implements Serializable {
 		}
 	}
 
-	public void registerCompounds(Collection<ICompound> compounds) {
+	public void registerCompounds(List<ICompound> compounds) {
 		for (ICompound compound : compounds) {
 			registerCompound(compound);
 		}
-
+		delegateTableListener.setCompounds(compounds); // PZ new
 	}
 
 	public void registerMasterButtonBar(IButtonBar buttonBar, boolean callTableListenerOnNew) {
@@ -110,10 +120,10 @@ public class MasterDetailController implements Serializable {
 	/**
 	 * DelegateTableListener handles interaction with table events
 	 */
-	public class DelegateTableListener extends AbstractTableListener implements ITableListener {
+	private class DelegateTableListener extends AbstractTableListener implements ITableListener {
 
 		private ITableListener delegate = null;
-		private final List<ICompound> compounds = new ArrayList<ICompound>();
+		private List<ICompound> compounds = new ArrayList<ICompound>();
 
 		public void setDelegate(ITableListener listener) {
 			delegate = listener;
@@ -129,8 +139,8 @@ public class MasterDetailController implements Serializable {
 			return delegate;
 		}
 
-		public void addCompound(ICompound compound) {
-			compounds.add(compound);
+		public void setCompounds(List<ICompound> compounds) {
+			this.compounds = compounds;
 		}
 
 		@Override

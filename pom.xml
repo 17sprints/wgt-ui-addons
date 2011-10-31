@@ -42,7 +42,7 @@
 		<dependency>
 			<groupId>com.endress.infoserve.ui</groupId>
 			<artifactId>webguitoolkit-ui-eh</artifactId>
-			<version>01.03.12</version>
+			<version>01.03.13</version>
 			<optional>false</optional>
 			<scope>compile</scope>
 		</dependency>
