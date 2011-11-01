@@ -2,7 +2,6 @@ package org.webguitoolkit.ui.addons;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -38,6 +37,16 @@ import org.webguitoolkit.ui.controls.table.ITableListener;
 import org.webguitoolkit.ui.controls.table.Table;
 import org.webguitoolkit.ui.controls.util.Window2ActionAdapter;
 
+/**
+ * The Master-Detail-Controller coordinates the processing of a typical application pattern. Assuming to have a Table
+ * (list) of objects to show which have connected detail infomation which might be distributed on one one many tabs in a
+ * tabstrip.
+ * 
+ * Whenever a element in the master table is selected the details shall be updated.
+ * 
+ * @author peter@17sprints.de (derived from martin's factory)
+ * 
+ */
 public class MasterDetailController implements Serializable {
 
 	private static final long serialVersionUID = 1L;
@@ -50,15 +59,62 @@ public class MasterDetailController implements Serializable {
 	private String name;
 
 	private DelegateTableListener delegateTableListener;
+	private DelegateTabListener delegateTabListener;
+
+	private IMasterDetailViewListener viewListener;
 
 	public MasterDetailController() {
 	}
 
 	public MasterDetailController(String name) {
+		this.setName(name);
+	}
+
+	/**
+	 * Create a Master-Detail-Controller handling the row changes and tab changes including changes in EDIT mode.
+	 * 
+	 * @param table
+	 *            the master table. The table listener has to be registered when calling this constructor. If a table
+	 *            listener is present wrap it into the delegate table listener.
+	 * @param tabStrip
+	 *            the detail Tabstrip. The TabStrip listener has to be registered when calling this constructor. If a
+	 *            tab listener is present wrap it into the delegate tab listener.
+	 * @param masterButtonBar
+	 *            the master button bar usually from the first TabStrip.
+	 * @param compounds
+	 *            a list of all compounds depending on the master table. Usually all compounds on the tabstrip's tabs
+	 */
+	public MasterDetailController(ITable table, ITabStrip tabStrip, IButtonBar masterButtonBar,
+			List<ICompound> compounds) {
+		registerTable(table);
+		registerTabStrip(tabStrip);
+		registerCompounds(compounds);
+		registerMasterButtonBar(masterButtonBar, true);
+	}
+
+	public IMasterDetailViewListener getViewListener() {
+		return viewListener;
+	}
+
+	public void setViewListener(IMasterDetailViewListener viewListener) {
+		this.viewListener = viewListener;
+	}
+
+	/**
+	 * Give the MDC a name for debugging purposes
+	 * 
+	 * @param name
+	 */
+	public void setName(String name) {
 		this.name = name;
 	}
 
-	public void registerTable(ITable table) {
+	/**
+	 * Register the table. If a table listener is present wrap it into the delegate table listener.
+	 * 
+	 * @param table
+	 */
+	private void registerTable(ITable table) {
 		if (table == null)
 			throw new IllegalArgumentException("Table must be not null");
 		this.table = (Table) table;
@@ -69,39 +125,47 @@ public class MasterDetailController implements Serializable {
 			delegateTableListener.setDelegate(tableListener);
 	}
 
-	public void registerTabStrip(ITabStrip tabStrip) {
+	/**
+	 * register the tabstrip. If a tab listener is present wrap it into the delegate tab listener.
+	 * 
+	 * @param tabStrip
+	 */
+	private void registerTabStrip(ITabStrip tabStrip) {
 		if (tabStrip == null)
 			throw new IllegalArgumentException("Tabstrip must be not null");
 		this.tabStrip = (StandardTabStrip) tabStrip;
 
 		ITabListener tabListener = this.tabStrip.getListener();
-		DelegateTabListener delegateTabListener = new DelegateTabListener();
+		delegateTabListener = new DelegateTabListener();
 		tabStrip.setListener(delegateTabListener);
 		if (tabListener != null)
 			delegateTabListener.setDelegate(tabListener);
 	}
 
-	public void registerCompound(ICompound compound) {
-		if (tabStrip == null)
-			throw new IllegalStateException("TabStrip must be set before calling this");
-		BaseControl parent = ((Compound) compound).getParent();
-		while (parent.getParent() != null && parent.getParent() != tabStrip) {
-			parent = parent.getParent();
-		}
-		if (parent.getParent() == tabStrip && parent instanceof ITab) {
-			// register compound on the tab strip
-			((DelegateTabListener) ((StandardTabStrip) tabStrip).getListener()).addCompound((ITab) parent, compound);
-		}
-	}
-
-	public void registerCompounds(List<ICompound> compounds) {
+	/**
+	 * Register the passed compound list at the TableListener and TabListener. Additionally the compounds are to grouped
+	 * by Tabs.
+	 * 
+	 * @param compounds
+	 *            complete list of compounds in the view
+	 */
+	private void registerCompounds(List<ICompound> compounds) {
 		for (ICompound compound : compounds) {
-			registerCompound(compound);
+			if (tabStrip == null)
+				throw new IllegalStateException("TabStrip must be set before calling this");
+			BaseControl parent = ((Compound) compound).getParent();
+			while (parent.getParent() != null && parent.getParent() != tabStrip) {
+				parent = parent.getParent();
+			}
+			if (parent.getParent() == tabStrip && parent instanceof ITab) {
+				// register compound on the tab strip
+				delegateTabListener.addCompound((ITab) parent, compound);
+			}
 		}
 		delegateTableListener.setCompounds(compounds); // PZ new
 	}
 
-	public void registerMasterButtonBar(IButtonBar buttonBar, boolean callTableListenerOnNew) {
+	private void registerMasterButtonBar(IButtonBar buttonBar, boolean callTableListenerOnNew) {
 		if (buttonBar == null)
 			throw new IllegalArgumentException("buttonBar must be not null");
 		if (table == null)
@@ -118,7 +182,8 @@ public class MasterDetailController implements Serializable {
 	}
 
 	/**
-	 * DelegateTableListener handles interaction with table events
+	 * DelegateTableListener handles interaction with table events. In most cases just calls the delegate table
+	 * listener.
 	 */
 	private class DelegateTableListener extends AbstractTableListener implements ITableListener {
 
@@ -141,6 +206,87 @@ public class MasterDetailController implements Serializable {
 
 		public void setCompounds(List<ICompound> compounds) {
 			this.compounds = compounds;
+		}
+
+		@Override
+		public void onGotoRow(ClientEvent event) {
+			Table table = (Table) event.getSource();
+			// if there is a least one row...
+			boolean success = true;
+			if (table.getRowsLoaded() > 0) {
+				int userRow = table.getPage().getContext().getValueAsInt(table.id4RowInput()) - 1;
+				// set user row into bounds
+				userRow = Math.max(0,
+						Math.min(userRow, table.getPage().getContext().getValueAsInt(table.id4size()) - 1));
+				IDataBag bag = table.getRow(userRow);
+				success = handleRowChange(bag, event, false);
+			}
+			if (success)
+				getDelegate().onGotoRow(event);
+		}
+
+		@Override
+		public void onRowSelected(ClientEvent event) {
+			// Reference to the Table is always good
+			Table table = (Table) event.getSource();
+			// we do the controlling of the highlight
+			int rowSelected = Integer.parseInt(event.getParameter(0));
+			// there are some misguided events, when the table size is smaller than
+			// the viewable size
+			int firstRow = table.getPage().getContext().getValueAsInt(table.id4FirstRow());
+			int absSelection = firstRow + rowSelected;
+			IDataBag bag = table.getRow(absSelection);
+			boolean success = handleRowChange(bag, event, true);
+			if (success)
+				getDelegate().onRowSelected(event);
+		}
+
+		@Override
+		public void onRowSelection(ITable table, int row) {
+			for (Iterator iter = compounds.iterator(); iter.hasNext();) {
+				ICompound compound = (ICompound) iter.next();
+				compound.setBag(table.getRow(row));
+				compound.load();
+			}
+			if (getDelegate() instanceof AbstractTableListener)
+				((AbstractTableListener) getDelegate()).onRowSelection(table, row);
+		}
+
+		/**
+		 * Handle row change including EDIT mode check.<br>
+		 * 1. Collect all compounds in EDIT mode.<br>
+		 * 1a. If any in EDIT mode show "Unsaved Changes" dialog <br>
+		 * 1b. if non load all compounds
+		 * 
+		 * @return <code>false</code> if some compound are in edit mode
+		 */
+		private boolean handleRowChange(IDataBag newItem, ClientEvent evnet, boolean isRowSelect) {
+			List<ICompound> compoundsInEditMode = new ArrayList<ICompound>();
+
+			// look for compounds in EDIT mode
+			for (Iterator iter = compounds.iterator(); iter.hasNext();) {
+				ICompound compound = (ICompound) iter.next();
+				if (compound.getMode() == ICompound.MODE_EDIT || compound.getMode() == ICompound.MODE_NEW) {
+					compoundsInEditMode.add(compound);
+				}
+			}
+
+			// if compounds in EDIT mode exist raise dialog
+			if (!compoundsInEditMode.isEmpty()) {
+				new UnsavedCompoundsView(WebGuiFactory.getInstance(), table.getPage(), new ConfirmListener(delegate,
+						evnet, compounds, compoundsInEditMode, isRowSelect, newItem,
+						((Table) table).getSelectedRowIndex())).show();
+				return false;
+			}
+
+			for (Iterator iter = compounds.iterator(); iter.hasNext();) {
+				ICompound compound = (ICompound) iter.next();
+				compound.setBag(newItem);
+				compound.load();
+			}
+			if (viewListener != null)
+				viewListener.onRowChange(newItem);
+			return true;
 		}
 
 		@Override
@@ -184,20 +330,13 @@ public class MasterDetailController implements Serializable {
 		}
 
 		@Override
-		public void onGotoRow(ClientEvent event) {
-			Table table = (Table) event.getSource();
-			// if there is a least one row...
-			boolean success = true;
-			if (table.getRowsLoaded() > 0) {
-				int userRow = table.getPage().getContext().getValueAsInt(table.id4RowInput()) - 1;
-				// set userrowinto bounds
-				userRow = Math.max(0,
-						Math.min(userRow, table.getPage().getContext().getValueAsInt(table.id4size()) - 1));
-				IDataBag bag = table.getRow(userRow);
-				success = handleRowChange(bag, event, false);
-			}
-			if (success)
-				getDelegate().onGotoRow(event);
+		public void onScrollTo(ClientEvent event) {
+			getDelegate().onScrollTo(event);
+		}
+
+		@Override
+		public void onSort(ClientEvent event) {
+			getDelegate().onSort(event);
 		}
 
 		@Override
@@ -218,66 +357,6 @@ public class MasterDetailController implements Serializable {
 		@Override
 		public void onPageUp(ClientEvent event) {
 			getDelegate().onPageUp(event);
-		}
-
-		@Override
-		public void onRowSelected(ClientEvent event) {
-			// Reference to the Table is always good
-			Table table = (Table) event.getSource();
-			// we do the controlling of the highlight
-			int rowSelected = Integer.parseInt(event.getParameter(0));
-			// there are some misguided events, when the table size is smaller than
-			// the viewable size
-			int firstRow = table.getPage().getContext().getValueAsInt(table.id4FirstRow());
-			int absSelection = firstRow + rowSelected;
-			IDataBag bag = table.getRow(absSelection);
-			boolean success = handleRowChange(bag, event, true);
-			if (success)
-				getDelegate().onRowSelected(event);
-		}
-
-		@Override
-		public void onScrollTo(ClientEvent event) {
-			getDelegate().onScrollTo(event);
-		}
-
-		@Override
-		public void onSort(ClientEvent event) {
-			getDelegate().onSort(event);
-		}
-
-		@Override
-		public void onRowSelection(ITable table, int row) {
-			for (Iterator iter = compounds.iterator(); iter.hasNext();) {
-				ICompound compound = (ICompound) iter.next();
-				compound.setBag(table.getRow(row));
-				compound.load();
-			}
-			if (getDelegate() instanceof AbstractTableListener)
-				((AbstractTableListener) getDelegate()).onRowSelection(table, row);
-		}
-
-		private boolean handleRowChange(IDataBag newItem, ClientEvent evnet, boolean isRowSelect) {
-			List<ICompound> compoundsInEditMode = new ArrayList<ICompound>();
-			for (Iterator iter = compounds.iterator(); iter.hasNext();) {
-				ICompound compound = (ICompound) iter.next();
-				if (compound.getMode() == ICompound.MODE_EDIT || compound.getMode() == ICompound.MODE_NEW) {
-					compoundsInEditMode.add(compound);
-				}
-			}
-			if (!compoundsInEditMode.isEmpty()) {
-				new UnsavedCompoundsView(WebGuiFactory.getInstance(), table.getPage(), new ConfirmListener(delegate,
-						evnet, compounds, compoundsInEditMode, isRowSelect, newItem,
-						((Table) table).getSelectedRowIndex())).show();
-				return false;
-			}
-
-			for (Iterator iter = compounds.iterator(); iter.hasNext();) {
-				ICompound compound = (ICompound) iter.next();
-				compound.setBag(newItem);
-				compound.load();
-			}
-			return true;
 		}
 
 		public class ConfirmListener implements IConfirmationListener {
@@ -501,6 +580,7 @@ public class MasterDetailController implements Serializable {
 	 * Confirmation dialog that is displayed when there are compounds in edit mode
 	 */
 	class UnsavedCompoundsView extends AbstractPopup {
+		private static final long serialVersionUID = 1L;
 		private final IConfirmationListener proceedListener;
 
 		public UnsavedCompoundsView(WebGuiFactory factory, Page page, IConfirmationListener proceedListener) {
@@ -528,6 +608,7 @@ public class MasterDetailController implements Serializable {
 					close();
 				}
 			};
+
 			IActionListener yesListener = new IActionListener() {
 				public void onAction(ClientEvent event) {
 					proceedListener.onYes(event);
@@ -540,6 +621,7 @@ public class MasterDetailController implements Serializable {
 			SequentialTableLayout manager = new SequentialTableLayout();
 			manager.setTableStyle("width: 100%;");
 			viewConnector.setLayout(manager);
+
 			// add image
 			if (StringUtils.isNotEmpty(msgType)) {
 				IHtmlElement img = factory.createHtmlElement(viewConnector, "img");
@@ -575,6 +657,10 @@ public class MasterDetailController implements Serializable {
 		void onYes(ClientEvent event);
 
 		void onNo(ClientEvent event);
+	}
+
+	public interface IMasterDetailViewListener {
+		public void onRowChange(IDataBag bag);
 	}
 
 }
