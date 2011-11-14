@@ -3,11 +3,9 @@ package org.webguitoolkit.ui.addons;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
 import org.webguitoolkit.ui.base.IDataBag;
 import org.webguitoolkit.ui.base.WebGuiFactory;
 import org.webguitoolkit.ui.controls.AbstractPopup;
@@ -39,8 +37,8 @@ import org.webguitoolkit.ui.controls.util.Window2ActionAdapter;
 
 /**
  * The Master-Detail-Controller coordinates the processing of a typical application pattern. Assuming to have a Table
- * (list) of objects to show which have connected detail infomation which might be distributed on one one many tabs in a
- * tabstrip.
+ * (list) of objects to show which have connected detail information which might be distributed on one one many tabs in a
+ * TabStrip.
  * 
  * Whenever a element in the master table is selected the details shall be updated.
  * 
@@ -50,13 +48,9 @@ import org.webguitoolkit.ui.controls.util.Window2ActionAdapter;
 public class MasterDetailController implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-
-	private static Logger log = Logger.getLogger(MasterDetailController.class);
-
 	private Table table;
 	private StandardTabStrip tabStrip;
 	private ButtonBar masterButtonBar;
-	private String name;
 
 	private DelegateTableListener delegateTableListener;
 	private DelegateTabListener delegateTabListener;
@@ -66,10 +60,6 @@ public class MasterDetailController implements Serializable {
 	public MasterDetailController() {
 	}
 
-	public MasterDetailController(String name) {
-		this.setName(name);
-	}
-
 	/**
 	 * Create a Master-Detail-Controller handling the row changes and tab changes including changes in EDIT mode.
 	 * 
@@ -77,7 +67,7 @@ public class MasterDetailController implements Serializable {
 	 *            the master table. The table listener has to be registered when calling this constructor. If a table
 	 *            listener is present wrap it into the delegate table listener.
 	 * @param tabStrip
-	 *            the detail Tabstrip. The TabStrip listener has to be registered when calling this constructor. If a
+	 *            the detail TabStrip. The TabStrip listener has to be registered when calling this constructor. If a
 	 *            tab listener is present wrap it into the delegate tab listener.
 	 * @param masterButtonBar
 	 *            the master button bar usually from the first TabStrip.
@@ -100,14 +90,6 @@ public class MasterDetailController implements Serializable {
 		this.viewListener = viewListener;
 	}
 
-	/**
-	 * Give the MDC a name for debugging purposes
-	 * 
-	 * @param name
-	 */
-	public void setName(String name) {
-		this.name = name;
-	}
 
 	/**
 	 * Register the table. If a table listener is present wrap it into the delegate table listener.
@@ -187,6 +169,7 @@ public class MasterDetailController implements Serializable {
 	 */
 	private class DelegateTableListener extends AbstractTableListener implements ITableListener {
 
+		private static final long serialVersionUID = 1L;
 		private ITableListener delegate = null;
 		private List<ICompound> compounds = new ArrayList<ICompound>();
 
@@ -200,6 +183,7 @@ public class MasterDetailController implements Serializable {
 					@Override
 					public void onRowSelection(ITable table, int row) {
 					}
+					private static final long serialVersionUID = 1L;
 				};
 			return delegate;
 		}
@@ -243,8 +227,7 @@ public class MasterDetailController implements Serializable {
 
 		@Override
 		public void onRowSelection(ITable table, int row) {
-			for (Iterator iter = compounds.iterator(); iter.hasNext();) {
-				ICompound compound = (ICompound) iter.next();
+			for (ICompound compound : compounds) {
 				compound.setBag(table.getRow(row));
 				compound.load();
 			}
@@ -264,8 +247,7 @@ public class MasterDetailController implements Serializable {
 			List<ICompound> compoundsInEditMode = new ArrayList<ICompound>();
 
 			// look for compounds in EDIT mode
-			for (Iterator iter = compounds.iterator(); iter.hasNext();) {
-				ICompound compound = (ICompound) iter.next();
+			for (ICompound compound : compounds) {
 				if (compound.getMode() == ICompound.MODE_EDIT || compound.getMode() == ICompound.MODE_NEW) {
 					compoundsInEditMode.add(compound);
 				}
@@ -273,19 +255,20 @@ public class MasterDetailController implements Serializable {
 
 			// if compounds in EDIT mode exist raise dialog
 			if (!compoundsInEditMode.isEmpty()) {
-				new UnsavedCompoundsView(WebGuiFactory.getInstance(), table.getPage(), new ConfirmListener(delegate,
+				new UnsavedCompoundsView(WebGuiFactory.getInstance(), table.getPage(), new RowChangeConfirmListener(delegate,
 						evnet, compounds, compoundsInEditMode, isRowSelect, newItem,
 						((Table) table).getSelectedRowIndex())).show();
 				return false;
 			}
 
-			for (Iterator iter = compounds.iterator(); iter.hasNext();) {
-				ICompound compound = (ICompound) iter.next();
+			for (ICompound compound : compounds) {
 				compound.setBag(newItem);
 				compound.load();
 			}
+			
 			if (viewListener != null)
 				viewListener.onRowChange(newItem);
+			
 			return true;
 		}
 
@@ -359,17 +342,17 @@ public class MasterDetailController implements Serializable {
 			getDelegate().onPageUp(event);
 		}
 
-		public class ConfirmListener implements IConfirmationListener {
+		public class RowChangeConfirmListener implements IConfirmationListener {
 			private final boolean isRowSelelct;
-			private final List allCompounds;
-			private final List compoundsInEdit;
+			private final List<ICompound> allCompounds;
+			private final List<ICompound> compoundsInEdit;
 			private final ClientEvent tableEvent;
 			private final ITableListener delegatedListener;
 			private final IDataBag newItem;
 			private final int oldSelectionId;
 
-			public ConfirmListener(ITableListener delegate, ClientEvent tableEvent, List allCompounds,
-					List compoundsInEdit, boolean isRowSelelct, IDataBag newItem, int oldSelection) {
+			public RowChangeConfirmListener(ITableListener delegate, ClientEvent tableEvent, List<ICompound> allCompounds,
+					List<ICompound> compoundsInEdit, boolean isRowSelelct, IDataBag newItem, int oldSelection) {
 				super();
 				this.isRowSelelct = isRowSelelct;
 				this.allCompounds = allCompounds;
@@ -381,13 +364,12 @@ public class MasterDetailController implements Serializable {
 			}
 
 			public void onYes(ClientEvent event) {
-				for (Iterator iter = compoundsInEdit.iterator(); iter.hasNext();) {
-					ICompound comp = (ICompound) iter.next();
-					comp.getBag().undo();
-					comp.changeElementMode(ICompound.MODE_READONLY);
+				for (ICompound compound : compoundsInEdit) {
+					compound.getBag().undo();
+					compound.changeElementMode(ICompound.MODE_READONLY);
 				}
-				for (Iterator iter = allCompounds.iterator(); iter.hasNext();) {
-					ICompound compound = (ICompound) iter.next();
+				
+				for (ICompound compound : allCompounds) {
 					compound.setBag(newItem);
 					compound.load();
 				}
@@ -418,35 +400,36 @@ public class MasterDetailController implements Serializable {
 	 * DelegateTableListener handles interaction with tab events
 	 */
 	public class DelegateTabListener implements ITabListener {
+	
+		private static final long serialVersionUID = 1L;
 		private ITabListener delegate = null;
-		private final Hashtable compoundsOnTab = new Hashtable();
+		private final Hashtable<ITab,List<ICompound>> compoundsOnTab = new Hashtable<ITab, List<ICompound>>();
 
 		public void setDelegate(ITabListener listener) {
 			delegate = listener;
 		}
 
 		public void addCompound(ITab tab, ICompound compound) {
-			List comps = (List) compoundsOnTab.get(tab);
+			List<ICompound> comps = compoundsOnTab.get(tab);
 			if (comps == null) {
-				comps = new ArrayList();
+				comps = new ArrayList<ICompound>();
 				compoundsOnTab.put(tab, comps);
 			}
 			comps.add(compound);
 		}
 
 		public boolean onTabChange(ITab old, ITab selected, ClientEvent event) {
-			List compounds = (List) compoundsOnTab.get(old);
-			List compoundsInEditMode = new ArrayList();
+			List<ICompound> compounds = compoundsOnTab.get(old);
+			List<ICompound> compoundsInEditMode = new ArrayList<ICompound>();
 			if (compounds != null) {
-				for (Iterator iter = compounds.iterator(); iter.hasNext();) {
-					ICompound compound = (ICompound) iter.next();
+				for (ICompound compound :compounds) {
 					if (compound.getMode() == ICompound.MODE_EDIT || compound.getMode() == ICompound.MODE_NEW) {
 						compoundsInEditMode.add(compound);
 					}
 				}
 			}
 			if (!compoundsInEditMode.isEmpty()) {
-				new UnsavedCompoundsView(WebGuiFactory.getInstance(), table.getPage(), new ConfirmListener(delegate,
+				new UnsavedCompoundsView(WebGuiFactory.getInstance(), table.getPage(), new TabChangeConfirmListener(delegate,
 						event, compoundsInEditMode, old, selected)).show();
 				return false;
 			}
@@ -455,14 +438,14 @@ public class MasterDetailController implements Serializable {
 			return true;
 		}
 
-		public class ConfirmListener implements IConfirmationListener {
+		public class TabChangeConfirmListener implements IConfirmationListener {
 			private final ITab oldTab;
 			private final ITab newTab;
 			private final List<ICompound> compounds;
 			private final ClientEvent tabEvent;
 			private final ITabListener delegateTabListener;
 
-			public ConfirmListener(ITabListener delegate, ClientEvent tabEvent, List<ICompound> compounds, ITab oldTab,
+			public TabChangeConfirmListener(ITabListener delegate, ClientEvent tabEvent, List<ICompound> compounds, ITab oldTab,
 					ITab newTab) {
 				super();
 				this.oldTab = oldTab;
@@ -502,6 +485,7 @@ public class MasterDetailController implements Serializable {
 	 * DelegateTableListener handles interaction with button bar events and calls the
 	 */
 	public class DelegateButtonBarListener implements IButtonBarListener {
+		private static final long serialVersionUID = 1L;
 
 		private final ITable masterTable;
 
@@ -584,14 +568,14 @@ public class MasterDetailController implements Serializable {
 		private final IConfirmationListener proceedListener;
 
 		public UnsavedCompoundsView(WebGuiFactory factory, Page page, IConfirmationListener proceedListener) {
-			super(factory, page, "popup.header.unsaved.compounds@There are unsaved Forms!", 400, 400);
+			super(factory, page, "popup.header.unsaved.compounds@There are unsaved Forms!", 250, 400);
 			this.proceedListener = proceedListener;
 		}
 
 		@Override
 		protected void createControls(WebGuiFactory factory, ICanvas viewConnector) {
 			String msgType = "warn";
-			String msg = "popup.body.unsaved.compounds@There are unsaved Forms! Proceed and discard changes?";
+			String msg = "popup.body.unsaved.compounds@There are unsaved Forms! <br/>Proceed and discard changes?";
 
 			// the canvas will be inserted manually into the page
 			viewConnector.setDragable(true);
@@ -607,6 +591,7 @@ public class MasterDetailController implements Serializable {
 					proceedListener.onNo(event);
 					close();
 				}
+				private static final long serialVersionUID = 1L;
 			};
 
 			IActionListener yesListener = new IActionListener() {
@@ -614,6 +599,7 @@ public class MasterDetailController implements Serializable {
 					proceedListener.onYes(event);
 					close();
 				}
+				private static final long serialVersionUID = 1L;
 			};
 
 			viewConnector.setWindowActionListener(new Window2ActionAdapter(noListener));
@@ -646,7 +632,7 @@ public class MasterDetailController implements Serializable {
 			// add button no
 			IButton noButton = factory.createButton(viewConnector, null, "button.no@No", "button.no@No", noListener);
 			noButton.setLayoutData(SequentialTableLayout.APPEND);
-
+			getDialog().getWindow().addCssClass("dropshadow");
 		}
 	}
 
