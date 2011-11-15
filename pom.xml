@@ -8,7 +8,7 @@
 	<name>wgt-ui-addons</name>
 	<url>http://webguitoolkit.org</url>
 
-	<version>01.00.01-SNAPSHOT</version>
+	<version>01.00.01</version>
 
 	<description>WGT project created with maven webguitoolkit-archetype</description>
 
